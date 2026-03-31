@@ -112,5 +112,3 @@ The results show the expected trade-off:
 - **Hash table lookup** requires extra memory and a preprocessing step, but it is much faster for repeated searches.
 - The optimized approach returned the same results as the baseline in every benchmark, so the correctness check passed for all tested datasets.
 
-## Notes
-This repo includes a synthetic dataset generator so the project can run immediately without an external download. If needed, the generated files can be replaced with a real Spotify-style dataset from Kaggle as long as it includes a title column such as `track_name`, `title`, or `song_title`.
