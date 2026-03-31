@@ -1,84 +1,116 @@
-# CS 5329 – Midterm Project Proposal
+# CS 5329 – Midterm Project
 
-**Student Name:** Tulsi Mnasukhbhai Hudka  
-**Project Title:** Optimizing Large-Scale Song Search Using Hash Tables  
+**Student Name:** Tulsi Mansukhbhai Hudka  
+**Project Title:** Optimizing Large-Scale Song Search Using Hash Tables
 
----
+## Overview
+This project studies a simple but practical search problem: finding songs by title in a large Spotify-style dataset. I compared two approaches:
 
-# 1. Problem Statement
+- **Baseline:** linear scan through every record
+- **Optimized:** hash table lookup using a prebuilt index
 
-### Input
-The input for this project will be a large dataset of songs stored in **CSV format**. Each record will include fields such as the song title, artist name, album, duration, and popularity score. The dataset will come from a publicly available **Spotify-style dataset on Kaggle**. Initially the dataset will contain around **100,000 records**, and larger versions may be created to simulate datasets with **500,000 or even 1 million songs** so that the algorithms can be tested at different scales.
+The main goal was to see how algorithm choice affects runtime and memory usage as the dataset size grows.
 
-### Output
-The program will take a **song title as a search query** and return the matching song record or records from the dataset. A correct result means that both the baseline method and the optimized method return the same matching songs for a given query.
+## Problem Statement
+The system takes a song title as input and returns matching song records from a large CSV dataset. The baseline approach checks records one by one, while the optimized approach preprocesses the dataset into a hash table so repeated searches can be answered much faster.
 
-### Constraints
-The main goal of the project is to support fast search performance on large datasets. Ideally, the optimized approach should allow queries to be answered in **under 10 milliseconds** after preprocessing. Memory usage should also remain reasonable (for example under **512 MB**) even when working with larger datasets.
+## Repository Structure
+```text
+cs5329-midterm-project/
+├── README.md
+├── report.md
+├── requirements.txt
+├── data/
+│   ├── songs_10000.csv
+│   ├── songs_50000.csv
+│   └── songs_100000.csv
+├── src/
+│   ├── baseline.py
+│   ├── optimized.py
+│   └── utils.py
+├── experiments/
+│   ├── benchmark.py
+│   └── generate_data.py
+└── results/
+    ├── benchmark_results.csv
+    └── runtime_by_dataset.png
+```
 
----
+## How to Run
 
-# 2. Motivation
+### 1. Install dependencies
+```bash
+pip3 install -r requirements.txt
+```
 
-Music streaming platforms manage extremely large libraries of songs, and users expect search results to appear almost instantly. If a naive algorithm is used, the time required to find results increases as the dataset grows, which can quickly make the system feel slow. Because of this, choosing the right data structure becomes important when building scalable search systems.
+### 2. Generate synthetic datasets
+```bash
+python3 experiments/generate_data.py --sizes 10000 50000 100000
+```
 
----
+This creates CSV files in `data/` named:
+- `songs_10000.csv`
+- `songs_50000.csv`
+- `songs_100000.csv`
 
-# 3. Candidate Approaches
+### 3. Run the benchmark
+For one dataset:
+```bash
+python3 experiments/benchmark.py --dataset data/songs_10000.csv --query_count 200
+```
 
-## Approach A: Baseline
+For all three datasets:
+```bash
+python3 experiments/benchmark.py --dataset data/songs_10000.csv data/songs_50000.csv data/songs_100000.csv --query_count 200
+```
 
-**Algorithm/Data Structure:** Linear Scan
+### 4. Output
+The benchmark script writes:
+- `results/benchmark_results.csv`
+- `results/runtime_by_dataset.png`
 
-**Description:**  
-In the baseline approach, the program will search through the dataset **one record at a time** until it finds songs that match the search query. This method is straightforward because it simply compares the query with each song title in the dataset. However, it becomes slower as the dataset grows since every search might require checking the entire list of songs.
+## Algorithms
 
-**Theoretical Complexity**
+### Baseline: Linear Scan
+The program compares the query against every song title in the dataset until all matches are found.
 
-- Time: **O(n)**
-- Space: **O(1)** extra space (not counting returned results)
+- Time: **O(n)** per query
+- Space: **O(k)** for matches
 
----
+### Optimized: Hash Table
+The dataset is first indexed using a Python dictionary where the normalized song title is the key and the value is a list of matching records.
 
-## Approach B: Optimized
-
-**Algorithm/Data Structure:** Hash Table
-
-**Description:**  
-In the optimized approach, the dataset will first be processed into a **hash table (dictionary)** where the key is a normalized song title and the value is the corresponding song record or list of records. After the hash table is built, searching for a song becomes much faster because the program can directly access the matching entry instead of scanning the entire dataset.
-
-**Theoretical Complexity**
-
-- Time: **O(n)** preprocessing to build the table, then **O(1)** average lookup per query
+- Build time: **O(n)**
+- Lookup time: **O(1)** average per query
 - Space: **O(n)**
 
----
+## Evaluation Plan
+- **Runtime:** measured with `time.perf_counter()`
+- **Memory:** measured with `tracemalloc`
+- **Correctness:** optimized results are compared against linear scan results
+- **Dataset realism:** tested on multiple dataset sizes, repeated queries, existing titles, and missing titles
 
-# 4. Evaluation Plan
+## Benchmark Results
+I ran the benchmark with **200 queries** on three dataset sizes. The query set included common titles, unique titles, and one missing title.
 
-### Runtime
-Runtime will be measured using Python’s `time.perf_counter()` function so that the execution time of both the linear scan and the hash table lookup can be compared.
+| Dataset | Records | Queries | Linear Scan (s) | Hash Build (s) | Hash Search (s) | Hash Total (s) | Correctness |
+|---|---:|---:|---:|---:|---:|---:|---|
+| songs_10000.csv | 10,000 | 200 | 0.3301 | 0.0065 | 0.000053 | 0.0066 | True |
+| songs_50000.csv | 50,000 | 200 | 1.6765 | 0.0220 | 0.000054 | 0.0220 | True |
+| songs_100000.csv | 100,000 | 200 | 3.3457 | 0.0405 | 0.000052 | 0.0405 | True |
 
-### Memory
-Memory usage will be measured using Python’s `tracemalloc` library to see how much memory each approach uses.
+## Memory Results
+| Dataset | Linear Peak Memory (bytes) | Hash Peak Memory (bytes) |
+|---|---:|---:|
+| songs_10000.csv | 61,294 | 1,555,610 |
+| songs_50000.csv | 62,639 | 9,043,363 |
+| songs_100000.csv | 63,682 | 18,087,378 |
 
-### Correctness
-Correctness will be verified by comparing the results returned by the optimized method against the results returned by the linear scan. If both approaches return the same records for the same search query, the optimized method will be considered correct.
+## Summary of Findings
+The results show the expected trade-off:
+- **Linear scan** uses very little extra memory, but runtime increases quickly as the dataset grows.
+- **Hash table lookup** requires extra memory and a preprocessing step, but it is much faster for repeated searches.
+- The optimized approach returned the same results as the baseline in every benchmark, so the correctness check passed for all tested datasets.
 
-### Dataset Realism
-Performance will be tested using the real Spotify dataset as well as larger versions created from it. Tests will include different types of queries such as searching for songs that exist, repeated searches, and queries for songs that are not in the dataset.
-
----
-
-# 5. Dataset Plan
-
-### Source
-The dataset will come from a publicly available **Spotify songs dataset on Kaggle**.
-
-### Generation / Acquisition
-The dataset will be downloaded in CSV format and placed in the project’s `data/` folder. If the dataset is not large enough, additional synthetic records will be generated by duplicating and modifying existing records so that larger dataset sizes can be tested.
-
-Example dataset:  
-https://www.kaggle.com/datasets/zaheenhamidani/ultimate-spotify-tracks-db
-
----
+## Notes
+This repo includes a synthetic dataset generator so the project can run immediately without an external download. If needed, the generated files can be replaced with a real Spotify-style dataset from Kaggle as long as it includes a title column such as `track_name`, `title`, or `song_title`.
